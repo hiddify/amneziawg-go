@@ -9,8 +9,8 @@ import (
 	"github.com/amnezia-vpn/amneziawg-go/v3/conn"
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
+	"github.com/sagernet/gvisor/pkg/tcpip/adapters/gonet"
 	"golang.getoutline.org/sdk/transport"
-	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 )
 
 type DialerOptions struct {
