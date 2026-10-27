@@ -333,6 +333,20 @@ func (device *Device) RoutineReadFromTUN() {
 
 		// read packets
 		count, readErr = device.tun.device.Read(bufs, sizes, offset)
+		// hiddify: the read may have started before s4 was set (the device reads from its creation,
+		// the configuration comes later); packets sent with the old padding are dropped by the peer,
+		// so move them to the current one
+		if current := device.paddings.transport.Load(); current != padding {
+			newOffset := MessageTransportHeaderSize + int(current)
+			for i := 0; i < count; i++ {
+				if newOffset+sizes[i] > len(bufs[i]) {
+					sizes[i] = 0 // no room: drop it
+					continue
+				}
+				copy(bufs[i][newOffset:newOffset+sizes[i]], bufs[i][offset:offset+sizes[i]])
+			}
+			padding, offset = current, newOffset
+		}
 		for i := 0; i < count; i++ {
 			if sizes[i] < 1 {
 				continue
