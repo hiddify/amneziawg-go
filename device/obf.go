@@ -17,6 +17,7 @@ var obfBuilders = map[string]obfBuilder{
 	"d":  newDataObf,
 	"ds": newDataStringObf,
 	"dz": newDataSizeObf,
+	"qi": newQUICInitialObf, // hiddify: a fresh QUIC Initial for each packet
 }
 
 type obf interface {
