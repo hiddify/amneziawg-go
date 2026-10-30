@@ -440,17 +440,18 @@ func (pc *PingConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	pc.wq.EventRegister(&e)
 	defer pc.wq.EventUnregister(&e)
 
-	select {
-	case <-pc.deadline.C:
-		return 0, nil, os.ErrDeadlineExceeded
-	case <-notifyCh:
-	}
-
+	// a reply that came before the call sends no notification: read first, wait only when there is none
 	w := tcpip.SliceWriter(p)
-
-	res, tcpipErr := pc.ep.Read(&w, tcpip.ReadOptions{
-		NeedRemoteAddr: true,
-	})
+	res, tcpipErr := pc.ep.Read(&w, tcpip.ReadOptions{NeedRemoteAddr: true})
+	for _, wouldBlock := tcpipErr.(*tcpip.ErrWouldBlock); wouldBlock; _, wouldBlock = tcpipErr.(*tcpip.ErrWouldBlock) {
+		select {
+		case <-pc.deadline.C:
+			return 0, nil, os.ErrDeadlineExceeded
+		case <-notifyCh:
+		}
+		w = tcpip.SliceWriter(p)
+		res, tcpipErr = pc.ep.Read(&w, tcpip.ReadOptions{NeedRemoteAddr: true})
+	}
 	if tcpipErr != nil {
 		return 0, nil, fmt.Errorf("ping read: %s", tcpipErr)
 	}
